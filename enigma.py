@@ -1,13 +1,13 @@
 #! /usr/bin/python
 
-rotors       = {}
-notches      = {}
-reflectors   = {}
-plugboard    = []
-offsets      = []
-rings        = []
-ringSettings = []
-reflector    = ""
+rotors       = {} # List of the individual rotors
+notches      = {} # List of the notch positions for the rotors
+reflectors   = {} # List of the individual reflectors
+plugboard    = [] # List of the current plugboard setting
+rings        = [] # List of the chosen rotors
+ringSettings = [] # List of the ring settings
+offsets      = [] # List of the offsets of the rings
+reflector    = "" # Name of the current reflector
 
 def encode(c):
     '''
@@ -60,9 +60,9 @@ def applyRotor(n,d,c):
     '''
 
     r = rotors[rings[n]]
-    o = offsets[n] - ringSettings[n]
+    o = (offsets[n] - (ringSettings[n]-1) + c)%26
     
-    return (c + r[d][(o + c)%26]) % 26
+    return (c + r[d][o]) % 26
 
 def initialiseOffsets(s):
     '''
@@ -243,13 +243,9 @@ defineReflector("B", "YRUHQSLDPXNGOKMIEBFZCWVJAT")
 defineReflector("C", "FVPJIAOYEDRZXWGCTKUQSBNMHL")
 
 reflector = "B"
-
 rings = ["I", "II", "III"]
 ringSettings = [2,2,2]
 definePlugboard("")#"EJ OY IV AQ KW FX MT PS LU BD")
-
-for i in range(len(ringSettings)):
-    ringSettings[i] -= 1
 
 initialiseOffsets('AAA')
 
@@ -265,4 +261,20 @@ print(s)
 
 initialiseOffsets('AAA')
 print(encryptMessage(s))
+
+reflector = "B"
+rings = ["I", "II", "III"]
+ringSettings = [1,1,1]
+definePlugboard("")
+
+initialiseOffsets('AAA')
+
+s = encryptMessage('AAAAA')
+print(s)
+
+ringSettings = [2,2,2]
+initialiseOffsets('AAA')
+s = encryptMessage('AAAAA')
+print(s)
+
 
