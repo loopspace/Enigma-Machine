@@ -1,5 +1,7 @@
 #! /usr/bin/python
 
+debug = False
+
 rotors       = {} # List of the individual rotors
 notches      = {} # List of the notch positions for the rotors
 reflectors   = {} # List of the individual reflectors
@@ -27,7 +29,7 @@ def decode(c):
     '''
     return chr(c + 65)
 
-def defineRotor(n,s,c):
+def defineRotor(n,s,h):
     '''
     Convert a rotor string into the rotor structure
 
@@ -46,7 +48,7 @@ def defineRotor(n,s,c):
         r[(i + d)%26] = (-d)%26
         i += 1
     rotors[n]  = [f, r]
-    notches[n] = encode(c)
+    notches[n] = encode(h)
 
 def applyRotor(n,d,c):
     '''
@@ -159,25 +161,37 @@ def encryptChar(c):
     :param int c: character to encrypt
     :return: encrypted character
     '''
-
+    s = [c]
     # Step rings
     stepOffsets()
+    for o in offsets:
+        s.append(o)
     # Encode character
     d = encode(c)
+    s.append(d)
     # Pass through plugboard
     d = applyPlugboard(d)
+    s.append(d)
     # Pass through the rings, from right to left
     for i in range(len(rings)-1,-1,-1):
         d = applyRotor(i,0,d)
+        s.append(d)
     # Apply the reflector
     d = applyReflector(d)
+    s.append(d)
     # Pass back through the rings, from left to right
     for i in range(len(rings)):
         d = applyRotor(i,1,d)
+        s.append(d)
     # Pass through the plugboard
     d = applyPlugboard(d)
+    s.append(d)
     # Decode character
     d = decode(d)
+    s.append(d)
+    # If debugging
+    if debug:
+        print(s)
     # Return character
     return d
 
@@ -185,6 +199,15 @@ def encryptMessage(s):
     e = []
     for c in s:
         e.append(encryptChar(c))
+    return "".join(e)
+
+def prepareMessage(s):
+    e = []
+    for c in s:
+        if c.isalpha():
+            e.append(c.upper())
+        else:
+            e.append("X")
     return "".join(e)
 
 def testRotor(n):
@@ -249,14 +272,20 @@ definePlugboard("")#"EJ OY IV AQ KW FX MT PS LU BD")
 
 initialiseOffsets('AAA')
 
-for i in range(len(rings)):
-    print(testRotor(i))
+#for i in range(len(rings)):
+#    print(testRotor(i))
 
-print(testReflector())
-print(testPlugboard())
+#print(testReflector())
+#print(testPlugboard())
+
+print(rotors["III"])
+print(rotors["II"])
+print(rotors["I"])
 
 initialiseOffsets('AAA')
+debug = True
 s = encryptMessage('AAAAA')
+debug = False
 print(s)
 
 initialiseOffsets('AAA')
@@ -277,4 +306,18 @@ initialiseOffsets('AAA')
 s = encryptMessage('AAAAA')
 print(s)
 
+
+ringSettings = [2,2,2]
+initialiseOffsets('AAA')
+s = prepareMessage('Twas brillig and the slithy toves did gyre and gimble in the wabe.  All mimsy were the borogroves and the mome raths outgabe.')
+debug = True
+s = encryptMessage(s)
+debug = False
+t = "PATMAVTUJOTDLVQTFXPVLAZFWDJSMGPIAWYSOOANVCVIYRCOZDHEBCZQVXGHACJVMIPKEZWTDXXWBCNSEWVDYMZXVDSQNTYUBFEFCHCLMHBWTZVLVQANKTHXZWUNV"
+print(s)
+print(t)
+for i in range(len(s)):
+    if s[i] != t[i]:
+        print(i,s[i],t[i])
+        break
 
