@@ -539,79 +539,26 @@ the data into a spreadsheet.
 ### Initial Data
 
 I've put each piece into a separate sheet, so that I have sheets named
-`Rotors`, `Reflectors`, and `Plugboard`.
+`Rotors` and `Reflectors`.
 
 #### Rotors
 
 In the `Rotors` sheet, each
-rotor consists of three rows.  The input data goes in the first row,
-which looks like:
+rotor consists of a row containing its name, its alphabet string, and
+its notch position.  This looks like:
 
 ```
 I	EKMFLGDQVZNTOWYHXUSPAIBRCJ	Q
 ```
 
-In the next rows, we want to produce the lists of the forward and
-reverse lists of differences for this rotor.  This is achieved by the
-following formulae (which should be copied across the rows):
-
-```
-=mod(code(mid($B1,column(),1))-64 - column(),26)
-=mod(find(char(column()+64),$B1) - column(),26)
-```
-
-In this case, `$B1` refers to the cell containing the rotor
-specification.
-
-Let's break down one of these formulae.  We need to work from the inside out.
-
-* `column()`: `column()` is the column number of this cell,
-  so in a cell in column `A` it returns `1`, in a cell in column `B`
-  it returns `2`, and so on.
-* `mid($B1,column(),1)`: `mid()` selects some text from the middle of
-  a given piece of text.  In this case, the text is in cell `$B1`
-  (i.e., the rotor specification).  The text is selected starting at
-  the `column()` character and has length 1.  That is, it selects the
-  character in the text corresponding to the column.
-* `code(...)-64`: `code()` converts a letter into its ascii code.
-  Subtracting 64 shifts this down so that `A` becomes `1`, `B` becomes
-  `2`, and so on.
-* `... - column()`: if the original string had been `ABCDE...` then
-  the result of the above manipulations would be the same as
-  `column()` so this subtraction finds the difference between the
-  letter in the rotor specification and the position of that letter.
-* `mod(...,26)`: this ensures that the number stays between 0 and 26.
-
-The other thing we do in the rotor sheet is to convert the notch
-position from a letter to a number.  Next to the notch cell (say, in
-`B4`), we put the formula `=code(C1)-65`.  This converts the letter to
-a zero-based number (i.e., `A` becomes `0`).
 
 #### Reflectors
 
-In the Reflectors sheet, we do something similar but slightly
-simpler.  Each reflector only needs two rows.  The first row is
-something like:
+We do something similar in the Reflectors sheet, so that a row looks like:
 
 ```
 A	EJMZALYXVBWFCRQUONTSPIKHGD
 ```
-
-In the second row, we want the letters spread out into cells and
-converted to numbers.  For that, we use the formula:
-
-```
-=code(mid($B1,column(),1))-65
-```
-
-#### Plugboard
-
-The Plugboard sheet is simpler as it is part of the specification for
-the Enigma Machine.  So it needs two rows, the top of which consists
-of the letters `A` to `Z`.  The lower row is where the user puts the
-plugboard configuration: for a pair, say, `EH` put `H` underneath the
-`E` and `E` underneath the `H`.  Any blank cells on the lower row
-should be filled with the letter above it.
 
 #### Letters
 
@@ -639,32 +586,119 @@ Ciphertext
 Unknown Letter
 Reflector
 Rings
+Plugboard
+Notches
 Ring Settings
 Offsets
 ```
 
-There is a blank row after `Reflector` and eight blank rows after
-`Rings`.  These are used to hold copies of the relevant information
-from the corresponding sheets, which makes the formulae on this sheet
-easier to maintain.
+There are five blank rows after
+`Rings` and a single blank row after each of `Plugboard` and `Notches`.
 The `Unknown Letter` is used to substitute for any non-letter
 character in the message.
 
-In the cell next to the heading `Reflector`, the following formula
-copies across the information for a given reflector:
+To make the formulae for the rings and reflector a bit simpler, we
+will put a row of the numbers `1` to `26` in cells `E3` to
+`AD3`.  This is in the row `Unknown Letter` although it has nothing to
+do with that.
+
+#### Reflector
+
+The cell next to the heading `Reflector` is where the name of the
+reflector will go.  Next to this cell, we put the following formula
+which looks up the reflector alphabet string:
 
 ```
-={Reflectors!A3:Z4}
+=vlookup(B4,Reflectors!A1:B3,2)
 ```
 
-The rings are similarly copied into the cells alongside and below the
-`Rings` heading.  Spaced out, the formulae are:
+In the second row, we want the letters spread out into cells and
+converted to numbers.  For that, we use the formula:
 
 ```
-={Rotors!A1:Z3}
-={Rotors!A4:Z6}
-={Rotors!A7:Z9}
+=code(mid($C4,E$3,1))-65
 ```
+
+and copy this across from `E4` to `AD4`.
+
+This formula works as follows.  The `mid` formula is used to pick a
+substring from some text.  The text is the alphabet string for the
+reflector, which is in cell `C4`.  The starting position of the
+substring is cell `E3`, and the length of the substring is `1`,
+meaning that it picks up a single letter.  As this is copied across,
+the dollars mean that cell `C4` doesn't change but `E3` does, so this
+separates the alphabet string into one letter per cell.
+Then the `code` formula converts that letter to a number, but such
+that `A` becomes `65` (because it uses ASCII) so we subtract `65` so
+that `A` becomes `0`.
+
+
+#### Rotors
+
+We do a similar thing with the rotors, starting with copying the
+alphabet string.  But as we need to use the rotors in both directions,
+each rotor needs two rows.  So we put the ring names in cells `B5`,
+`B7`, and `B9`.  Then alongside them, we use the formulae:
+
+```
+=vlookup(B5,Rotors!A$1:B$5,2)
+=vlookup(B7,Rotors!A$1:B$5,2)
+=vlookup(B9,Rotors!A$1:B$5,2)
+```
+
+In the next rows, we want to produce the lists of the forward and
+reverse lists of differences for this rotor.  This is achieved by the
+following formulae (which should be copied across the rows):
+
+```
+=mod(code(mid($C5,E$3,1))-64 - E$3,26)
+=mod(find(char(E$3+64),$C5) - E$3,26)
+```
+
+In this case, `$C5` refers to the cell containing the rotor
+specification.
+
+Let's break down one of these formulae.  We need to work from the inside out.
+
+* `mid($C5,E$3,1)`: as in the reflector code, `mid()` selects some text from the middle of
+  a given piece of text.  In this case, the text is in cell `C5`
+  (i.e., the rotor specification).  The text is selected starting at
+  the `E3` character and has length 1.  That is, it selects each
+  character in the text in turn.
+* `code(...)-64`: `code()` converts a letter into its ascii code.
+  Subtracting 64 shifts this down so that `A` becomes `1`, `B` becomes
+  `2`, and so on.
+* `... - E$3`: if the original string had been `ABCDE...` then
+  the result of the above manipulations would be the same as what is in
+  `E3` so this subtraction finds the difference between the
+  letter in the rotor specification and the position of that letter.
+* `mod(...,26)`: this ensures that the number stays between 0 and 26.
+
+The other thing we do with the rotors is to copy across the notch
+position and convert it from a letter to a number.  
+To get the notches, we put the following formulae in the row named
+`Notches`:
+
+```
+=vlookup($B$5,Rotors!$A$1:$C$5,3)
+=vlookup($B$7,Rotors!$A$1:$C$5,3)
+=vlookup($B$9,Rotors!$A$1:$C$5,3)
+```
+
+Below each cell (say, in
+`B13`), we put the formula `=code(B13)-65`.  This converts the letter to
+a zero-based number (i.e., `A` becomes `0`).
+
+
+#### Plugboard
+
+The Plugboard needs two rows, the top of which consists
+of the letters `A` to `Z`.  The lower row is where the user puts the
+plugboard configuration: for a pair, say, `EH` put `H` underneath the
+`E` and `E` underneath the `H`.  Any blank cells on the lower row
+should be filled with the letter above it.
+
+#### Encryption
 
 Spreadsheets work on a different paradigm to ordinary programming.
 Recursion is very limited.  So rather than a single set of offsets
@@ -674,8 +708,8 @@ continue this down the spreadsheet.  The formulae for the new offsets
 are:
 
 ```
-=mod(if(C16 = $E$9,B16+1,B16),26)
-=mod(if(D16 = $E$12,C16+1,C16)+if(C16 =$E$9,1,0),26)
+=mod(if(C16 = $C$14,B16+1,B16),26)
+=mod(if(D16 = $D$14,C16+1,C16)+if(C16 =$C$14,1,0),26)
 =mod(D8+1,26)
 ```
 
@@ -690,6 +724,10 @@ Alongside these offsets go the various steps of the encryption.
 Although it could be done in a single formula, not only does spacing
 it out simplify it, it also makes it possible to see the inner
 workings.
+
+In addition to the encryption columns, it is useful to have an
+indexing column with the numbers from `1` upwards.  I've put this in
+the first column, under the heading `Offsets`.
 
 The columns are as follows:
 
@@ -714,19 +752,19 @@ at this stage the letters are converted to numbers.
 The formulae that achieve these steps are:
 
 ```
-=mid($B$1,row()-row($E$8),1)
-=if(iserror(find(upper(E9),"ABCDEFGHIJKLMNOPQRSTUVWXYZ")),$B$3,upper(E9))
-=hlookup(F9,Plugboard!$A$1:$Z$2,2,false)
-=hlookup(G9,Letters!$A$1:$Z$2,2,false)
-=mod(H9 + index($B$13:$AA$13,1,mod(H9+D9-D$7+1,26)+1),26)
-=mod(I9 + index($B$10:$AA$10,1,mod(I9+C9-C$7+1,26)+1),26)
-=mod(J9 + index($B$7:$AA$7,1,mod(J9+B9-B$7+1,26)+1),26)
-=index($B$5:$AA$5,1,K9+1)
-=mod(L9 + index($B$8:$AA$8,1,mod(L9+B9-B$7+1,26)+1),26)
-=mod(M9 + index($B$11:$AA$11,1,mod(M9+C9-C$7+1,26)+1),26)
-=mod(N9 + index($B$14:$AA$14,1,mod(N9+D9-D$7+1,26)+1),26)
-=hlookup(O9,Letters!$A$2:$Z$3,2,false)
-=hlookup(P9,Plugboard!$A$1:$Z$2,2,false)
+=mid($B$1,A17,1)
+=if(iserror(find(upper(E17),"ABCDEFGHIJKLMNOPQRSTUVWXYZ")),$B$3,upper(E17))
+=hlookup(F17,$E$11:$AD$11,2,false)
+=hlookup(G17,Letters!$A$1:$Z$2,2,false)
+=mod(H17 + index($E$9:$AD$9,1,mod(H17+D17-D$15+1,26)+1),26)
+=mod(I17 + index($E$7:$AA$7,1,mod(I17+C17-C$15+1,26)+1),26)
+=mod(J17 + index($E$5:$AA$5,1,mod(J17+B17-B$15+1,26)+1),26)
+=index($E$4:$AD$4,1,K17+1)
+=mod(L17 + index($E$6:$AD$6,1,mod(L17+B17-B$15+1,26)+1),26)
+=mod(M17 + index($E$8:$AA$8,1,mod(M17+C17-C$15+1,26)+1),26)
+=mod(N17 + index($E$10:$AA$10,1,mod(N17+D17-D$15+1,26)+1),26)
+=hlookup(O17,Letters!$A$2:$Z$3,2,false)
+=hlookup(P17,$E$11:$AD$11,2,false)
 ```
 
 These then should be copied down as far as needed.
